@@ -96,6 +96,8 @@ HTML_DOCUMENT_STRINGS_ACTION1(selected)
 /* HTMLSelectElement strings */
 HTML_DOCUMENT_STRINGS_ACTION(select_multiple,select-multiple)
 HTML_DOCUMENT_STRINGS_ACTION(select_one,select-one)
+/* HTMLDlist attributes */
+HTML_DOCUMENT_STRINGS_ACTION1(compact)
 /* Some event strings for later */
 HTML_DOCUMENT_STRINGS_ACTION1(blur)
 HTML_DOCUMENT_STRINGS_ACTION1(focus)
