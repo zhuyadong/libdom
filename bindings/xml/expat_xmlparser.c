@@ -32,6 +32,24 @@ struct dom_xml_parser {
 	dom_xml_parser_fetch_cb fetch_cb;	/**< Callback to fetch external entities */
 };
 
+/* Parser callback */
+static int expat_xmlparser_parse_cb(void *parser, const char *data, int size)
+{
+	enum XML_Status status;
+
+	status = XML_Parse(parser, data, size, 0);
+	if (status != XML_STATUS_OK) {
+		XML_ParserFree(parser);
+		return XML_STATUS_OK;
+	}
+
+	XML_Parse(parser, "", 0, 1);
+	XML_ParserFree(parser);
+
+	return XML_STATUS_OK;
+}
+
+
 /* Binding functions */
 
 static void
@@ -294,13 +312,6 @@ expat_xmlparser_external_entity_ref_handler(XML_Parser parser,
 					    const XML_Char *public_id)
 {
 	XML_Parser subparser;
-	unsigned char data[1024];
-	size_t len;
-	enum XML_Status status;
-
-	UNUSED(data);
-	UNUSED(len);
-	UNUSED(status);
 
 	UNUSED(public_id);
 
@@ -319,23 +330,10 @@ expat_xmlparser_external_entity_ref_handler(XML_Parser parser,
 		return XML_STATUS_OK;
 	}
 	
-	if(xml_parser->fetch_cb(subparser, base, system_id) == false)
+	if(xml_parser->fetch_cb(subparser, base, system_id, expat_xmlparser_parse_cb) == false)
 		return XML_STATUS_OK;
 
-#if 0
-
-	/* Parse the file bit by bit */
-	while ((len = fread(data, 1, 1024, fh)) > 0) {
-		status = XML_Parse(subparser, (const char *)data, len, 0);
-		if (status != XML_STATUS_OK) {
-			XML_ParserFree(subparser);
-			return XML_STATUS_OK;
-		}
-	}
-#endif
-	XML_Parse(subparser, "", 0, 1);
-	XML_ParserFree(subparser);
-
+// add 1
 	return XML_STATUS_OK;
 }
 

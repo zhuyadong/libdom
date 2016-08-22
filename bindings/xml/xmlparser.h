@@ -16,8 +16,8 @@
 #include "xmlerror.h"
 
 typedef struct dom_xml_parser dom_xml_parser;
-typedef int (*dom_xml_parser_fetch_cb)(void *parser, const char *base,
-								       const char *uri);
+typedef int (*dom_xml_parser_fetch_cb)(void *parser, const char *base, const char *uri,
+		int (*expat_xmlparser_parse_cb)(void *parser, const char *data, int size));
 
 /* Create an XML parser instance */
 dom_xml_parser *dom_xml_parser_create(const char *enc, const char *int_enc,
