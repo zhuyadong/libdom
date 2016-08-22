@@ -16,10 +16,13 @@
 #include "xmlerror.h"
 
 typedef struct dom_xml_parser dom_xml_parser;
+typedef int (*dom_xml_parser_fetch_cb)(void *parser, const char *base,
+								       const char *uri);
 
 /* Create an XML parser instance */
 dom_xml_parser *dom_xml_parser_create(const char *enc, const char *int_enc,
-		dom_msg msg, void *mctx, dom_document **document);
+		dom_msg msg, void *mctx, dom_document **document,
+		dom_xml_parser_fetch_cb fetch_cb);
 
 /* Destroy an XML parser instance */
 void dom_xml_parser_destroy(dom_xml_parser *parser);

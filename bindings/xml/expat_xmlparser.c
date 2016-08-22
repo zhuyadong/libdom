@@ -29,6 +29,7 @@ struct dom_xml_parser {
 	struct dom_document *doc;	/**< DOM Document we're building */
 	struct dom_node *current;	/**< DOM node we're currently building */
 	bool is_cdata;			/**< If the character data is cdata or text */
+	dom_xml_parser_fetch_cb fetch_cb;	/**< Callback to fetch external entities */
 };
 
 /* Binding functions */
@@ -292,44 +293,49 @@ expat_xmlparser_external_entity_ref_handler(XML_Parser parser,
 					    const XML_Char *system_id,
 					    const XML_Char *public_id)
 {
-	FILE *fh;
 	XML_Parser subparser;
 	unsigned char data[1024];
 	size_t len;
 	enum XML_Status status;
 
-	UNUSED(base);
+	UNUSED(data);
+	UNUSED(len);
+	UNUSED(status);
+
 	UNUSED(public_id);
 
 	if (system_id == NULL)
 		return XML_STATUS_OK;
 
-	fh = fopen(system_id, "r");
+	struct dom_xml_parser *xml_parser = XML_GetUserData(parser);
 
-	if (fh == NULL)
-		return XML_STATUS_OK;
-
-	subparser = XML_ExternalEntityParserCreate(parser,
-						   context,
-						   NULL);
-
-	if (subparser == NULL) {
-		fclose(fh);
+	if (xml_parser->fetch_cb == NULL) {
 		return XML_STATUS_OK;
 	}
+
+	subparser = XML_ExternalEntityParserCreate(parser, context, NULL);
+
+	if (subparser == NULL) {
+		return XML_STATUS_OK;
+	}
+	
+	if(xml_parser->fetch_cb(subparser, base, system_id) == false)
+		return XML_STATUS_OK;
+
+#if 0
 
 	/* Parse the file bit by bit */
 	while ((len = fread(data, 1, 1024, fh)) > 0) {
 		status = XML_Parse(subparser, (const char *)data, len, 0);
 		if (status != XML_STATUS_OK) {
 			XML_ParserFree(subparser);
-			fclose(fh);
 			return XML_STATUS_OK;
 		}
 	}
+#endif
 	XML_Parse(subparser, "", 0, 1);
 	XML_ParserFree(subparser);
-	fclose(fh);
+
 	return XML_STATUS_OK;
 }
 
@@ -447,7 +453,8 @@ expat_xmlparser_unknown_data_handler(void *_parser,
  */
 dom_xml_parser *
 dom_xml_parser_create(const char *enc, const char *int_enc,
-		      dom_msg msg, void *mctx, dom_document **document)
+		      dom_msg msg, void *mctx, dom_document **document,
+		      dom_xml_parser_fetch_cb fetch_cb)
 {
 	dom_xml_parser *parser;
 	dom_exception err;
@@ -460,6 +467,7 @@ dom_xml_parser_create(const char *enc, const char *int_enc,
 		return NULL;
 	}
 
+	parser->fetch_cb = fetch_cb;
 	parser->msg = msg;
 	parser->mctx = mctx;
 
