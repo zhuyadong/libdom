@@ -36,17 +36,21 @@ struct dom_xml_parser {
 static int expat_xmlparser_parse_cb(void *parser, const char *data, int size, const char *uri)
 {
 	enum XML_Status status;
+	struct dom_xml_parser *xml_parser;
 
 	XML_SetBase(parser, uri);
+	xml_parser = XML_GetUserData(parser);
 
 	status = XML_Parse(parser, data, size, 0);
 	if (status != XML_STATUS_OK) {
 		XML_ParserFree(parser);
+		free(xml_parser);
 		return XML_STATUS_OK;
 	}
 
 	XML_Parse(parser, "", 0, 1);
 	XML_ParserFree(parser);
+	free(xml_parser);
 
 	return XML_STATUS_OK;
 }
@@ -314,6 +318,7 @@ expat_xmlparser_external_entity_ref_handler(XML_Parser parser,
 					    const XML_Char *public_id)
 {
 	XML_Parser subparser;
+	struct dom_xml_parser *xml_parser_copy;
 
 	UNUSED(public_id);
 
@@ -326,14 +331,21 @@ expat_xmlparser_external_entity_ref_handler(XML_Parser parser,
 		return XML_STATUS_OK;
 	}
 
-	/**\todo do we need to push a copy of xml_parser into our parser userdata here? */
+	xml_parser_copy = malloc(sizeof(struct dom_xml_parser));
+	if (xml_parser_copy == NULL) {
+		return XML_STATUS_OK;
+	}
 
 	subparser = XML_ExternalEntityParserCreate(parser, context, NULL);
 
 	if (subparser == NULL) {
 		return XML_STATUS_OK;
 	}
-	
+
+	memcpy(xml_parser_copy, xml_parser, sizeof(struct dom_xml_parser));
+	XML_SetUserData(subparser, xml_parser_copy);
+	xml_parser_copy->parser = subparser;
+
 	if(xml_parser->fetch_cb(subparser, base, system_id, expat_xmlparser_parse_cb) == false)
 		return XML_STATUS_OK;
 
