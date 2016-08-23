@@ -33,9 +33,11 @@ struct dom_xml_parser {
 };
 
 /* Parser callback */
-static int expat_xmlparser_parse_cb(void *parser, const char *data, int size)
+static int expat_xmlparser_parse_cb(void *parser, const char *data, int size, const char *uri)
 {
 	enum XML_Status status;
+
+	XML_SetBase(parser, uri);
 
 	status = XML_Parse(parser, data, size, 0);
 	if (status != XML_STATUS_OK) {
@@ -324,6 +326,8 @@ expat_xmlparser_external_entity_ref_handler(XML_Parser parser,
 		return XML_STATUS_OK;
 	}
 
+	/**\todo do we need to push a copy of xml_parser into our parser userdata here? */
+
 	subparser = XML_ExternalEntityParserCreate(parser, context, NULL);
 
 	if (subparser == NULL) {
@@ -445,6 +449,7 @@ expat_xmlparser_unknown_data_handler(void *_parser,
  * \param msg      Informational message function
  * \param mctx     Pointer to client-specific private data
  * \param document DOM Document
+ * \param fetch_cb Callback to call for fetching entity refs
  * \return Pointer to instance, or NULL on memory exhaustion
  *
  * int_enc is ignored due to it being made of bees.
@@ -452,7 +457,7 @@ expat_xmlparser_unknown_data_handler(void *_parser,
 dom_xml_parser *
 dom_xml_parser_create(const char *enc, const char *int_enc,
 		      dom_msg msg, void *mctx, dom_document **document,
-		      dom_xml_parser_fetch_cb fetch_cb)
+		      const char *url, dom_xml_parser_fetch_cb fetch_cb)
 {
 	dom_xml_parser *parser;
 	dom_exception err;
@@ -499,6 +504,8 @@ dom_xml_parser_create(const char *enc, const char *int_enc,
 	parser->doc = (dom_document *) dom_node_ref(*document);
 
 	XML_SetUserData(parser->parser, parser);
+
+	XML_SetBase(parser->parser, url);
 
 	XML_SetElementHandler(parser->parser,
 			      expat_xmlparser_start_element_handler,
