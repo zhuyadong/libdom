@@ -44,7 +44,7 @@
 #include <string.h>
 
 #include <dom/dom.h>
-#include <dom/bindings/hubbub/parser.h>
+#include <bindings/hubbub/parser.h>
 
 
 /**
@@ -55,7 +55,7 @@
  */
 dom_document *create_doc_dom_from_file(char *file)
 {
-	size_t buffer_size = 1024;
+	#define buffer_size  1024
 	dom_hubbub_parser *parser = NULL;
 	FILE *handle;
 	int chunk_length;
